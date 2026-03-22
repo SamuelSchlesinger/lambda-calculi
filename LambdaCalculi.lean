@@ -6,4 +6,6 @@ import LambdaCalculi.Typing
 import LambdaCalculi.Reduction
 import LambdaCalculi.STLC
 import LambdaCalculi.Progress
+import LambdaCalculi.TySubstLemmas
 import LambdaCalculi.Preservation
+import LambdaCalculi.SystemF

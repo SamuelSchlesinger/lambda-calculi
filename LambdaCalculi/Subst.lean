@@ -62,8 +62,21 @@ def shift (d c : Nat) : Term p → Term p
   | .tyAbs hp body => .tyAbs hp (body.shift d c)
   | .tyApp hp t ty => .tyApp hp (t.shift d c) ty
 
+/-- Shift type variable indices inside a term's type annotations and type arguments.
+    Needed for correct substitution under type binders (Λ) in System F.
+    For STLC (`p = Empty`), the `lam`, `tyAbs`, and `tyApp` cases involving
+    type annotations are dead, so this is effectively the identity. -/
+def tyShift (d c : Nat) : Term p → Term p
+  | .var k => .var k
+  | .app t₁ t₂ => .app (t₁.tyShift d c) (t₂.tyShift d c)
+  | .lam ty body => .lam (ty.shift d c) (body.tyShift d c)
+  | .tyAbs hp body => .tyAbs hp (body.tyShift d (c + 1))
+  | .tyApp hp t ty => .tyApp hp (t.tyShift d c) (ty.shift d c)
+
 /-- Substitute term `s` for term variable `j`, decrementing variables above `j`.
-    This is the "combined" substitution: it replaces AND adjusts indices in one pass. -/
+    This is the "combined" substitution: it replaces AND adjusts indices in one pass.
+    When passing under a type binder (Λ), the type annotations in `s` are shifted
+    to account for the new type variable scope. -/
 def subst (j : Nat) (s : Term p) (t : Term p) : Term p :=
   match t with
   | .var k =>
@@ -72,7 +85,7 @@ def subst (j : Nat) (s : Term p) (t : Term p) : Term p :=
     else .var k
   | .app t₁ t₂ => .app (Term.subst j s t₁) (Term.subst j s t₂)
   | .lam ty body => .lam ty (Term.subst (j + 1) (s.shift 1 0) body)
-  | .tyAbs hp body => .tyAbs hp (Term.subst j s body)
+  | .tyAbs hp body => .tyAbs hp (Term.subst j (s.tyShift 1 0) body)
   | .tyApp hp t ty => .tyApp hp (Term.subst j s t) ty
 termination_by t
 
@@ -83,9 +96,9 @@ def tySubst (j : Nat) (s : Ty p) (t : Term p) : Term p :=
   match t with
   | .var k => .var k
   | .app t₁ t₂ => .app (Term.tySubst j s t₁) (Term.tySubst j s t₂)
-  | .lam ty body => .lam (ty.subst j s) (Term.tySubst j s body)
+  | .lam ty body => .lam (Ty.subst j s ty) (Term.tySubst j s body)
   | .tyAbs hp body => .tyAbs hp (Term.tySubst (j + 1) (s.shift 1 0) body)
-  | .tyApp hp t ty => .tyApp hp (Term.tySubst j s t) (ty.subst j s)
+  | .tyApp hp t ty => .tyApp hp (Term.tySubst j s t) (Ty.subst j s ty)
 termination_by t
 
 end Term
