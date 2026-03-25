@@ -5,63 +5,76 @@ namespace LambdaCalculi
 /-! ## Auxiliary lemmas about Ty.shift and Ty.subst
 
 These lemmas establish the key properties of de Bruijn shifting and substitution
-for types, needed for the type substitution preservation theorem in System F. -/
+for types, needed for the type substitution preservation theorem in System F / F-omega. -/
 
 -- ============================================================
 -- Ty.shift lemmas
 -- ============================================================
 
 /-- Shifting by 0 is the identity. -/
-theorem Ty.shift_zero (c : Nat) (ty : Ty p) : Ty.shift 0 c ty = ty := by
+theorem Ty.shift_zero (c : Nat) (ty : Ty p q) : Ty.shift 0 c ty = ty := by
   induction ty generalizing c with
   | base n => simp [Ty.shift]
   | arr a b iha ihb => simp [Ty.shift, iha, ihb]
-  | tvar hp k => simp only [Ty.shift]; split <;> simp
-  | all hp body ih => simp [Ty.shift, ih]
+  | tvar hpq k => simp only [Ty.shift]; split <;> simp
+  | all hp ki body ih => simp [Ty.shift, ih]
+  | tyLam hq ki body ih => simp [Ty.shift, ih]
+  | tyAppTy hq f a ihf iha => simp [Ty.shift, ihf, iha]
 
 /-- Two shifts at compatible cutoffs commute (with adjusted cutoffs). -/
-theorem Ty.shift_shift_comm (d1 d2 c1 c2 : Nat) (ty : Ty p) (h : c2 ≤ c1) :
+theorem Ty.shift_shift_comm (d1 d2 c1 c2 : Nat) (ty : Ty p q) (h : c2 ≤ c1) :
     Ty.shift d2 c2 (Ty.shift d1 c1 ty) = Ty.shift d1 (c1 + d2) (Ty.shift d2 c2 ty) := by
   induction ty generalizing c1 c2 with
   | base n => simp [Ty.shift]
   | arr a b iha ihb =>
     simp only [Ty.shift]
     exact congr (congrArg Ty.arr (iha c1 c2 h)) (ihb c1 c2 h)
-  | tvar hp k =>
+  | tvar hpq k =>
     simp only [Ty.shift]
     split <;> split <;> (try split) <;> (try split) <;>
       (first | omega | rfl | (congr 1; omega))
-  | all hp body ih =>
+  | all hp ki body ih =>
     simp only [Ty.shift]; congr 1
     rw [show c1 + d2 + 1 = c1 + 1 + d2 from by omega]
     exact ih (c1 + 1) (c2 + 1) (by omega)
+  | tyLam hq ki body ih =>
+    simp only [Ty.shift]; congr 1
+    rw [show c1 + d2 + 1 = c1 + 1 + d2 from by omega]
+    exact ih (c1 + 1) (c2 + 1) (by omega)
+  | tyAppTy hq f a ihf iha =>
+    simp only [Ty.shift]
+    exact congr (congrArg (Ty.tyAppTy hq) (ihf c1 c2 h)) (iha c1 c2 h)
 
 -- ============================================================
 -- Shift-subst interaction lemmas
 -- ============================================================
 
 /-- Substituting after shifting by 1 at the same cutoff cancels out. -/
-theorem Ty.subst_shift_cancel (j : Nat) (s : Ty p) (ty : Ty p) :
+theorem Ty.subst_shift_cancel (j : Nat) (s : Ty p q) (ty : Ty p q) :
     Ty.subst j s (Ty.shift 1 j ty) = ty := by
   induction ty generalizing j s with
   | base n => simp [Ty.shift, Ty.subst]
   | arr a b iha ihb => simp [Ty.shift, Ty.subst, iha, ihb]
-  | tvar hp k =>
+  | tvar hpq k =>
     simp only [Ty.shift, Ty.subst]
     split <;> split <;> (try split) <;> first | omega | rfl | (congr 1; omega)
-  | all hp body ih =>
+  | all hp ki body ih =>
     simp only [Ty.shift, Ty.subst]; congr 1
     exact ih (j + 1) (s.shift 1 0)
+  | tyLam hq ki body ih =>
+    simp only [Ty.shift, Ty.subst]; congr 1
+    exact ih (j + 1) (s.shift 1 0)
+  | tyAppTy hq f a ihf iha => simp [Ty.shift, Ty.subst, ihf, iha]
 
 /-- Shifting by 1 commutes with substitution (with adjusted indices). -/
-theorem Ty.shift_subst_comm (c j : Nat) (s ty : Ty p) (h : c ≤ j) :
+theorem Ty.shift_subst_comm (c j : Nat) (s ty : Ty p q) (h : c ≤ j) :
     Ty.shift 1 c (Ty.subst j s ty) = Ty.subst (j + 1) (s.shift 1 c) (Ty.shift 1 c ty) := by
   induction ty generalizing c j s with
   | base n => simp [Ty.shift, Ty.subst]
   | arr a b iha ihb =>
     simp only [Ty.shift, Ty.subst]
     exact congr (congrArg Ty.arr (iha c j s h)) (ihb c j s h)
-  | tvar hp k =>
+  | tvar hpq k =>
     by_cases hkj : k = j
     · subst hkj
       simp only [Ty.subst, ite_true, Ty.shift, if_pos (show k ≥ c by omega), ite_true]
@@ -79,11 +92,19 @@ theorem Ty.shift_subst_comm (c j : Nat) (s ty : Ty p) (h : c ≤ j) :
         · simp only [Ty.subst, if_neg hkj, if_neg hjk, Ty.shift, if_neg hkc]
           rw [if_neg (show ¬(k = j + 1) from by omega),
               if_neg (show ¬(j + 1 < k) from by omega)]
-  | all hp body ih =>
+  | all hp ki body ih =>
     simp only [Ty.shift, Ty.subst]; congr 1
     rw [show (s.shift 1 c).shift 1 0 = (s.shift 1 0).shift 1 (c + 1) from
       Ty.shift_shift_comm 1 1 c 0 s (Nat.zero_le c)]
     exact ih (c + 1) (j + 1) (s.shift 1 0) (by omega)
+  | tyLam hq ki body ih =>
+    simp only [Ty.shift, Ty.subst]; congr 1
+    rw [show (s.shift 1 c).shift 1 0 = (s.shift 1 0).shift 1 (c + 1) from
+      Ty.shift_shift_comm 1 1 c 0 s (Nat.zero_le c)]
+    exact ih (c + 1) (j + 1) (s.shift 1 0) (by omega)
+  | tyAppTy hq f a ihf iha =>
+    simp only [Ty.shift, Ty.subst]
+    exact congr (congrArg (Ty.tyAppTy hq) (ihf c j s h)) (iha c j s h)
 
 -- ============================================================
 -- Subst-subst commutation
@@ -91,7 +112,7 @@ theorem Ty.shift_subst_comm (c j : Nat) (s ty : Ty p) (h : c ≤ j) :
 
 /-- Two substitutions at compatible indices commute.
     This is the key lemma for the tyApp case of type substitution preservation. -/
-theorem Ty.subst_subst_comm (i j : Nat) (s a : Ty p) (b : Ty p) :
+theorem Ty.subst_subst_comm (i j : Nat) (s a : Ty p q) (b : Ty p q) :
     Ty.subst i (Ty.subst (i + j) s a) (Ty.subst (i + j + 1) (s.shift 1 i) b) =
     Ty.subst (i + j) s (Ty.subst i a b) := by
   induction b generalizing i j s a with
@@ -99,7 +120,7 @@ theorem Ty.subst_subst_comm (i j : Nat) (s a : Ty p) (b : Ty p) :
   | arr b1 b2 ih1 ih2 =>
     simp only [Ty.subst]
     exact congr (congrArg Ty.arr (ih1 i j s a)) (ih2 i j s a)
-  | tvar hp k =>
+  | tvar hpq k =>
     simp only [Ty.subst]
     by_cases hk1 : k = i + j + 1
     · subst hk1
@@ -128,23 +149,32 @@ theorem Ty.subst_subst_comm (i j : Nat) (s a : Ty p) (b : Ty p) :
           · simp only [Ty.subst, if_neg hk3, if_neg hk4,
                        if_neg (show ¬(k = i + j) from by omega),
                        if_neg (show ¬(i + j < k) from by omega)]
-  | all hp body ih =>
+  | all hp ki body ih =>
     simp only [Ty.subst]; congr 1
     rw [Ty.shift_subst_comm 0 (i + j) s a (Nat.zero_le _)]
     rw [Ty.shift_shift_comm 1 1 i 0 s (Nat.zero_le _)]
     rw [Nat.add_right_comm i j 1]
     exact ih (i + 1) j (s.shift 1 0) (a.shift 1 0)
+  | tyLam hq ki body ih =>
+    simp only [Ty.subst]; congr 1
+    rw [Ty.shift_subst_comm 0 (i + j) s a (Nat.zero_le _)]
+    rw [Ty.shift_shift_comm 1 1 i 0 s (Nat.zero_le _)]
+    rw [Nat.add_right_comm i j 1]
+    exact ih (i + 1) j (s.shift 1 0) (a.shift 1 0)
+  | tyAppTy hq f a' ihf iha =>
+    simp only [Ty.subst]
+    exact congr (congrArg (Ty.tyAppTy hq) (ihf i j s a)) (iha i j s a)
 
 /-- Shifting commutes with substitution when the substitution index is below the shift cutoff.
     Specifically: shift d c (subst j s ty) = subst j (shift d c s) (shift d (c+1) ty) when j ≤ c. -/
-theorem Ty.shift_subst_comm_gen (d c j : Nat) (s ty : Ty p) (h : j ≤ c) :
+theorem Ty.shift_subst_comm_gen (d c j : Nat) (s ty : Ty p q) (h : j ≤ c) :
     Ty.shift d c (Ty.subst j s ty) = Ty.subst j (Ty.shift d c s) (Ty.shift d (c + 1) ty) := by
   induction ty generalizing c j s with
   | base n => simp [Ty.shift, Ty.subst]
   | arr a b iha ihb =>
     simp only [Ty.shift, Ty.subst]
     exact congr (congrArg Ty.arr (iha c j s h)) (ihb c j s h)
-  | tvar hp k =>
+  | tvar hpq k =>
     simp only [Ty.subst]
     by_cases hkj : k = j
     · subst hkj
@@ -162,10 +192,18 @@ theorem Ty.shift_subst_comm_gen (d c j : Nat) (s ty : Ty p) (h : j ≤ c) :
       · simp only [Ty.shift, if_neg (show ¬(k ≥ c) from by omega),
                    if_neg (show ¬(k ≥ c + 1) from by omega),
                    Ty.subst, if_neg hkj, if_neg hjk]
-  | all hp body ih =>
+  | all hp ki body ih =>
     simp only [Ty.shift, Ty.subst]; congr 1
     rw [show (Ty.shift d c s).shift 1 0 = Ty.shift d (c + 1) (s.shift 1 0) from
       Ty.shift_shift_comm d 1 c 0 s (Nat.zero_le c)]
     exact ih (c + 1) (j + 1) (s.shift 1 0) (by omega)
+  | tyLam hq ki body ih =>
+    simp only [Ty.shift, Ty.subst]; congr 1
+    rw [show (Ty.shift d c s).shift 1 0 = Ty.shift d (c + 1) (s.shift 1 0) from
+      Ty.shift_shift_comm d 1 c 0 s (Nat.zero_le c)]
+    exact ih (c + 1) (j + 1) (s.shift 1 0) (by omega)
+  | tyAppTy hq f a ihf iha =>
+    simp only [Ty.shift, Ty.subst]
+    exact congr (congrArg (Ty.tyAppTy hq) (ihf c j s h)) (iha c j s h)
 
 end LambdaCalculi

@@ -1,11 +1,18 @@
 -- This module serves as the root of the `LambdaCalculi` library.
+import LambdaCalculi.Kind
 import LambdaCalculi.Ty
 import LambdaCalculi.Term
 import LambdaCalculi.Subst
+import LambdaCalculi.TySubstLemmas
+import LambdaCalculi.TyReduction
+import LambdaCalculi.TyConfluence
+import LambdaCalculi.Kinding
 import LambdaCalculi.Typing
 import LambdaCalculi.Reduction
-import LambdaCalculi.STLC
+import LambdaCalculi.Weakening
 import LambdaCalculi.Progress
-import LambdaCalculi.TySubstLemmas
 import LambdaCalculi.Preservation
+import LambdaCalculi.STLC
 import LambdaCalculi.SystemF
+import LambdaCalculi.TyOp
+import LambdaCalculi.SystemFOmega

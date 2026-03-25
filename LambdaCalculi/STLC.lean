@@ -6,17 +6,15 @@ import LambdaCalculi.Reduction
 
 /-! ## Simply Typed Lambda Calculus
 
-Type aliases and examples for the STLC, which is the lambda cube system
-with `p = Empty` (no polymorphism, no type variables). -/
+Type aliases and examples for the STLC, which is the lambda square system
+with `p = Empty, q = Empty` (no polymorphism, no type operators). -/
 
 namespace LambdaCalculi.STLC
 
--- Type aliases
-abbrev Ty := LambdaCalculi.Ty Empty
-abbrev Term := LambdaCalculi.Term Empty
-abbrev Context := LambdaCalculi.Context Empty
+abbrev Ty := LambdaCalculi.Ty Empty Empty
+abbrev Term := LambdaCalculi.Term Empty Empty
+abbrev Context := LambdaCalculi.Context Empty Empty
 
--- Convenient base types
 def Bool : Ty := .base 0
 def Nat : Ty := .base 1
 
@@ -24,38 +22,30 @@ def Nat : Ty := .base 1
 -- Examples
 -- ============================================================
 
-/-- The identity function: λ(x : Bool). x -/
 def id_bool : Term := .lam Bool (.var 0)
-
-/-- The constant function: λ(x : Bool). λ(y : Nat). x -/
 def const_bool_nat : Term := .lam Bool (.lam Nat (.var 1))
 
 -- ============================================================
--- Example typing derivations
+-- Typing derivations
 -- ============================================================
 
-/-- The identity function has type Bool → Bool -/
-example : HasType [] id_bool (.arr Bool Bool) :=
-  .lam (.var (by decide))
+example : HasType [] [] id_bool (.arr Bool Bool) :=
+  .lam .base (.var (by decide) .base)
 
-/-- The constant function has type Bool → Nat → Bool -/
-example : HasType [] const_bool_nat (.arr Bool (.arr Nat Bool)) :=
-  .lam (.lam (.var (by decide)))
+example : HasType [] [] const_bool_nat (.arr Bool (.arr Nat Bool)) :=
+  .lam .base (.lam .base (.var (by decide) .base))
 
-/-- In context [Bool], applying the identity to var 0 has type Bool -/
-example : HasType [Bool] (.app id_bool (.var 0)) Bool :=
-  .app (.lam (.var (by decide))) (.var (by decide))
+example : HasType [] [Bool] (.app id_bool (.var 0)) Bool :=
+  .app (.lam .base (.var (by decide) .base)) (.var (by decide) .base)
 
 -- ============================================================
--- Example reductions
+-- Reductions
 -- ============================================================
 
-/-- Beta reduction fires on the identity applied to a value -/
 example : Step (.app id_bool (.lam Bool (.var 0)))
               (Term.subst 0 (.lam Bool (.var 0)) (.var 0) : Term) :=
   .beta .lam
 
-/-- The substitution computes to the expected result -/
 example : Term.subst 0 (.lam Bool (.var 0)) (.var 0 : Term) = .lam Bool (.var 0) := by
   simp [Term.subst]
 
