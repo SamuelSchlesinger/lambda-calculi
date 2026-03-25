@@ -33,12 +33,27 @@ A single set of definitions and proofs covers all four systems.
 
 ## Metatheory
 
-The following are proved generically, for all four instantiations simultaneously:
+There is one proof of progress and one proof of preservation — and each proof works for all four systems at once. The theorems are universally quantified over `p` and `q`:
 
-- **Progress**: a well-typed closed term is either a value or can take a step
-- **Preservation**: if a well-typed term steps, the result has the same type
+```lean
+theorem progress {t : Term p q} {ty : Ty p q}
+    (ht : HasType Δ ctx t ty) (hclosed : ctx = []) :
+    Value t ∨ ∃ t', Step t t'
+
+theorem preservation {Δ : KindContext} {ctx : Context p q}
+    {t t' : Term p q} {ty : Ty p q}
+    (ht : HasType Δ ctx t ty) (hs : Step t t') :
+    HasType Δ ctx t' ty
+```
+
+Instantiate `p` and `q` and you get type safety for whichever system you want — no case splits on which vertex of the square you're in. The gating mechanism makes inapplicable constructors vacuously true: when `p = Empty`, polymorphic cases can never arise; when `q = Empty`, type-level reduction is empty and the conversion rule degenerates to identity.
+
+Also proved generically:
+
 - **Church-Rosser**: type-level beta reduction is confluent (via Tait-Martin-Lof parallel reduction)
 - **Well-kindedness**: every type assigned by the typing judgment has kind `*`
+
+No `sorry`, `axiom`, or escape hatches anywhere. No external dependencies (no Mathlib).
 
 ## File structure
 
