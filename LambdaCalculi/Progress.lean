@@ -22,6 +22,10 @@ theorem canonical_arr_gen {t : Term p q} {ty : Ty p q}
   | tyAbs hp _ =>
     exact absurd (heq.symm) TyEquiv.arr_ne_all
   | tyApp _ _ _ => cases hv
+  | const => exact absurd heq TyEquiv.base_ne_arr
+  | zero => exact absurd heq TyEquiv.nat_ne_arr
+  | succ _ _ => exact absurd heq TyEquiv.nat_ne_arr
+  | natrec _ _ _ _ _ => cases hv
   | conv _ heq' _ ih =>
     exact ih hctx hv (heq'.trans heq)
 
@@ -43,6 +47,10 @@ theorem canonical_all_gen {t : Term p q} {ty : Ty p q}
   | app _ _ => cases hv
   | tyAbs hp' _ => exact ⟨_, _, _, rfl⟩
   | tyApp _ _ _ => cases hv
+  | const => exact absurd heq TyEquiv.base_ne_all
+  | zero => exact absurd heq TyEquiv.nat_ne_all
+  | succ _ _ => exact absurd heq TyEquiv.nat_ne_all
+  | natrec _ _ _ _ _ => cases hv
   | conv _ heq' _ ih =>
     exact ih hctx hv (heq'.trans heq)
 
@@ -51,6 +59,30 @@ theorem canonical_all {t : Term p q}
     (ht : HasType Δ [] t (.all hp ki ty)) (hv : Value t) :
     ∃ hp' ki' body, t = .tyAbs hp' ki' body :=
   canonical_all_gen ht rfl hv TyEquiv.refl
+
+/-- Canonical forms for nat types, generalized for type equivalence.
+    A closed value whose type is equivalent to nat must be zero or succ v. -/
+theorem canonical_nat_gen {t : Term p q} {ty : Ty p q}
+    (ht : HasType Δ ctx t ty) (hctx : ctx = []) (hv : Value t)
+    (heq : TyEquiv ty .nat) :
+    t = .zero ∨ ∃ v, t = .succ v ∧ Value v := by
+  induction ht with
+  | var hget _ => subst hctx; simp at hget
+  | lam _ _ => exact absurd heq.symm TyEquiv.nat_ne_arr
+  | app _ _ => cases hv
+  | tyAbs hp _ => exact absurd heq.symm TyEquiv.nat_ne_all
+  | tyApp _ _ _ => cases hv
+  | const => exact absurd heq.symm TyEquiv.nat_ne_base
+  | zero => exact Or.inl rfl
+  | succ _ _ => cases hv with | succ hv' => exact Or.inr ⟨_, rfl, hv'⟩
+  | natrec _ _ _ _ _ => cases hv
+  | conv _ heq' _ ih => exact ih hctx hv (heq'.trans heq)
+
+/-- Canonical forms: a closed value of nat type must be zero or succ v -/
+theorem canonical_nat {t : Term p q}
+    (ht : HasType Δ [] t .nat) (hv : Value t) :
+    t = .zero ∨ ∃ v, t = .succ v ∧ Value v :=
+  canonical_nat_gen ht rfl hv TyEquiv.refl
 
 /-- Progress: a well-typed closed term is either a value or can step. -/
 theorem progress {t : Term p q} {ty : Ty p q}
@@ -72,6 +104,22 @@ theorem progress {t : Term p q} {ty : Ty p q}
     · exact ⟨_, .appFn hs⟩
   | tyAbs hp _ =>
     exact Or.inl .tyAbs
+  | const =>
+    exact Or.inl .const
+  | zero =>
+    exact Or.inl .zero
+  | succ _ ih =>
+    rcases ih hclosed with hv | ⟨t', hs⟩
+    · exact Or.inl (.succ hv)
+    · exact Or.inr ⟨_, .succArg hs⟩
+  | natrec hk hbase hstep hn _ _ ihn =>
+    right
+    rcases ihn hclosed with hv | ⟨n', hs⟩
+    · subst hclosed
+      rcases canonical_nat hn hv with rfl | ⟨v, rfl, hv'⟩
+      · exact ⟨_, .recZero⟩
+      · exact ⟨_, .recSucc hv'⟩
+    · exact ⟨_, .recArg hs⟩
   | tyApp hp ht' hk ih =>
     right
     rcases ih hclosed with hv | ⟨t', hs⟩

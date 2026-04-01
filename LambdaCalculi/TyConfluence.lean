@@ -16,6 +16,7 @@ via complete developments, then lift to multi-step reduction. -/
 /-- Parallel reduction: reduce zero or more redexes simultaneously -/
 inductive TyPar : Ty p q → Ty p q → Prop where
   | base : TyPar (.base n) (.base n)
+  | nat : TyPar .nat .nat
   | arr : TyPar a a' → TyPar b b' → TyPar (.arr a b) (.arr a' b')
   | tvar : TyPar (.tvar hpq n) (.tvar hpq n)
   | all : TyPar body body' → TyPar (.all hp ki body) (.all hp ki body')
@@ -28,6 +29,7 @@ inductive TyPar : Ty p q → Ty p q → Prop where
 theorem TyPar.refl : TyPar (t : Ty p q) t := by
   induction t with
   | base n => exact .base
+  | nat => exact .nat
   | arr a b iha ihb => exact .arr iha ihb
   | tvar hpq n => exact .tvar
   | all hp ki body ih => exact .all ih
@@ -42,6 +44,7 @@ theorem TyPar.shift (h : TyPar t t') (d c : Nat) :
     TyPar (Ty.shift d c t) (Ty.shift d c t') := by
   induction h generalizing c with
   | base => exact .base
+  | nat => exact .nat
   | arr ha hb iha ihb => exact .arr (iha c) (ihb c)
   | tvar => simp [Ty.shift]; exact .tvar
   | all _ ih => exact .all (ih (c + 1))
@@ -60,6 +63,7 @@ theorem TyPar.subst (hbod : TyPar body body') (harg : TyPar arg arg') (j : Nat) 
     TyPar (Ty.subst j arg body) (Ty.subst j arg' body') := by
   induction hbod generalizing j arg arg' with
   | base => simp [Ty.subst]; exact .base
+  | nat => simp [Ty.subst]; exact .nat
   | arr ha hb iha ihb =>
     simp [Ty.subst]; exact .arr (iha harg j) (ihb harg j)
   | tvar =>
@@ -89,11 +93,12 @@ theorem TyPar.subst (hbod : TyPar body body') (harg : TyPar arg arg') (j : Nat) 
     Otherwise, recurse into subterms. -/
 def Ty.complete : Ty p q → Ty p q
   | .base n => .base n
+  | .nat => .nat
   | .arr a b => .arr a.complete b.complete
   | .tvar hpq n => .tvar hpq n
   | .all hp ki body => .all hp ki body.complete
   | .tyLam hq ki body => .tyLam hq ki body.complete
-  | .tyAppTy hq (.tyLam hq' ki body) arg => Ty.subst 0 arg.complete body.complete
+  | .tyAppTy _ (.tyLam _ _ body) arg => Ty.subst 0 arg.complete body.complete
   | .tyAppTy hq f arg => .tyAppTy hq f.complete arg.complete
 
 -- ============================================================
@@ -103,6 +108,7 @@ def Ty.complete : Ty p q → Ty p q
 theorem TyPar.to_complete (h : TyPar t t') : TyPar t' (Ty.complete t) := by
   induction h with
   | base => exact .base
+  | nat => exact .nat
   | arr _ _ iha ihb => exact .arr iha ihb
   | tvar => exact .tvar
   | all _ ih => exact .all ih
@@ -111,6 +117,7 @@ theorem TyPar.to_complete (h : TyPar t t') : TyPar t' (Ty.complete t) := by
     -- Case-split on hf to determine whether f is a tyLam (which triggers beta in complete)
     cases hf with
     | base => exact .tyAppTy ihf iha
+    | nat => exact .tyAppTy ihf iha
     | arr _ _ => exact .tyAppTy ihf iha
     | tvar => exact .tyAppTy ihf iha
     | all _ => exact .tyAppTy ihf iha
@@ -161,6 +168,7 @@ theorem TyStep.to_par (h : TyStep t t') : TyPar t t' := by
 theorem TyPar.to_reduces (h : TyPar t t') : TyReduces t t' := by
   induction h with
   | base => exact .refl
+  | nat => exact .refl
   | arr _ _ iha ihb => exact TyReduces.arr iha ihb
   | tvar => exact .refl
   | all _ ih => exact TyReduces.allBody ih
@@ -219,5 +227,45 @@ theorem TyEquiv.trans (h1 : TyEquiv t₁ t₂) (h2 : TyEquiv t₂ t₃) : TyEqui
   obtain ⟨u₂, hr₂₁, hr₂₂⟩ := h2
   obtain ⟨u, hu₁, hu₂⟩ := church_rosser hr₁₂ hr₂₁
   exact ⟨u, hr₁₁.trans hu₁, hr₂₂.trans hu₂⟩
+
+/-- Base types and arrow types can never be equivalent -/
+theorem TyEquiv.base_ne_arr :
+    ¬ TyEquiv (.base n : Ty p q) (.arr a b) := by
+  intro ⟨t, hr1, hr2⟩
+  have h1 := hr1.head_preserved (show Ty.head (.base n) ≠ .tyAppTy from nofun)
+  have h2 := hr2.head_preserved (show Ty.head (.arr a b) ≠ .tyAppTy from nofun)
+  simp only [Ty.head] at h1 h2; rw [h1] at h2; exact absurd h2 nofun
+
+/-- Base types and universal types can never be equivalent -/
+theorem TyEquiv.base_ne_all :
+    ¬ TyEquiv (.base n : Ty p q) (.all hp ki body) := by
+  intro ⟨t, hr1, hr2⟩
+  have h1 := hr1.head_preserved (show Ty.head (.base n) ≠ .tyAppTy from nofun)
+  have h2 := hr2.head_preserved (show Ty.head (.all hp ki body) ≠ .tyAppTy from nofun)
+  simp only [Ty.head] at h1 h2; rw [h1] at h2; exact absurd h2 nofun
+
+/-- Nat and arrow types can never be equivalent -/
+theorem TyEquiv.nat_ne_arr :
+    ¬ TyEquiv (.nat : Ty p q) (.arr a b) := by
+  intro ⟨t, hr1, hr2⟩
+  have h1 := hr1.head_preserved (show Ty.head (.nat : Ty p q) ≠ .tyAppTy from nofun)
+  have h2 := hr2.head_preserved (show Ty.head (.arr a b) ≠ .tyAppTy from nofun)
+  simp only [Ty.head] at h1 h2; rw [h1] at h2; exact absurd h2 nofun
+
+/-- Nat and universal types can never be equivalent -/
+theorem TyEquiv.nat_ne_all :
+    ¬ TyEquiv (.nat : Ty p q) (.all hp ki body) := by
+  intro ⟨t, hr1, hr2⟩
+  have h1 := hr1.head_preserved (show Ty.head (.nat : Ty p q) ≠ .tyAppTy from nofun)
+  have h2 := hr2.head_preserved (show Ty.head (.all hp ki body) ≠ .tyAppTy from nofun)
+  simp only [Ty.head] at h1 h2; rw [h1] at h2; exact absurd h2 nofun
+
+/-- Nat and base types can never be equivalent -/
+theorem TyEquiv.nat_ne_base :
+    ¬ TyEquiv (.nat : Ty p q) (.base n) := by
+  intro ⟨t, hr1, hr2⟩
+  have h1 := hr1.head_preserved (show Ty.head (.nat : Ty p q) ≠ .tyAppTy from nofun)
+  have h2 := hr2.head_preserved (show Ty.head (.base n : Ty p q) ≠ .tyAppTy from nofun)
+  simp only [Ty.head] at h1 h2; rw [h1] at h2; exact absurd h2 nofun
 
 end LambdaCalculi

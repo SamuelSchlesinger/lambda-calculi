@@ -16,3 +16,4 @@ import LambdaCalculi.STLC
 import LambdaCalculi.SystemF
 import LambdaCalculi.TyOp
 import LambdaCalculi.SystemFOmega
+import LambdaCalculi.SystemT

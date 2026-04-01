@@ -48,6 +48,24 @@ inductive HasType {p : Type} {q : Type} : KindContext → Context p q → Term p
     HasType Δ ctx t (.all hp k bodyTy) →
     HasKind Δ argTy k →
     HasType Δ ctx (.tyApp hp t argTy) (Ty.subst 0 argTy bodyTy)
+  /-- Constant at base type n -/
+  | const :
+    HasType Δ ctx (.const n) (.base n)
+  /-- Zero has type Nat -/
+  | zero :
+    HasType Δ ctx .zero .nat
+  /-- Successor: if t : Nat then succ t : Nat -/
+  | succ :
+    HasType Δ ctx t .nat →
+    HasType Δ ctx (.succ t) .nat
+  /-- Primitive recursion (natrec):
+      C is the result type, base : C, step : Nat → C → C, n : Nat ⊢ natrec C base step n : C -/
+  | natrec :
+    HasKind Δ C .star →
+    HasType Δ ctx base C →
+    HasType Δ ctx step (.arr .nat (.arr C C)) →
+    HasType Δ ctx n .nat →
+    HasType Δ ctx (.natrec C base step n) C
   /-- Type conversion: if t has type τ and τ ≡ τ', then t has type τ'.
       The target type must be well-kinded.
       Essential for System F-omega where types can compute. -/
@@ -72,6 +90,10 @@ theorem HasType.well_kinded (ht : HasType Δ ctx t ty) : HasKind Δ ty .star := 
     -- ih : HasKind Δ (.all hp k bodyTy) .star
     match ih with
     | .all hbody => exact hbody.subst_preserves hk
+  | const => exact .base
+  | zero => exact .nat
+  | succ _ _ => exact .nat
+  | natrec hk _ _ _ _ => exact hk
   | conv _ _ hk => exact hk
 
 end LambdaCalculi

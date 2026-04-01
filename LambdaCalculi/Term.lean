@@ -18,6 +18,15 @@ inductive Term (p : Type) (q : Type) where
   | tyAbs : p → Kind → Term p q → Term p q
   /-- Type application (t [τ]), gated by `p` -/
   | tyApp : p → Term p q → Ty p q → Term p q
+  /-- Constant at base type n -/
+  | const : Nat → Term p q
+  /-- Zero (natural number) -/
+  | zero : Term p q
+  /-- Successor -/
+  | succ : Term p q → Term p q
+  /-- Primitive recursion: natrec C base step n
+      C is the result type, base : C, step : Nat → C → C, n : Nat -/
+  | natrec : Ty p q → Term p q → Term p q → Term p q → Term p q
   deriving Repr
 
 end LambdaCalculi

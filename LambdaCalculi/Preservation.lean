@@ -152,6 +152,10 @@ theorem HasType.lam_gen {Δ : KindContext} {ctx : Context p q}
   | app _ _ => cases htm
   | tyAbs _ _ => cases htm
   | tyApp _ _ _ => cases htm
+  | const => cases htm
+  | zero => cases htm
+  | succ _ _ => cases htm
+  | natrec _ _ _ _ _ => cases htm
   | conv _ heq _ ih =>
     obtain ⟨retTy, heq', hk, hbody⟩ := ih htm
     exact ⟨retTy, heq.symm.trans heq', hk, hbody⟩
@@ -170,9 +174,34 @@ theorem HasType.tyAbs_gen {Δ : KindContext} {ctx : Context p q}
   | app _ _ => cases htm
   | tyAbs hp' hbody => cases htm; exact ⟨_, TyEquiv.refl, hbody⟩
   | tyApp _ _ _ => cases htm
+  | const => cases htm
+  | zero => cases htm
+  | succ _ _ => cases htm
+  | natrec _ _ _ _ _ => cases htm
   | conv _ heq _ ih =>
     obtain ⟨bodyTy, heq', hbody⟩ := ih htm
     exact ⟨bodyTy, heq.symm.trans heq', hbody⟩
+
+/-- Succ generation: if a successor has type T, then T is equivalent to nat
+    and the argument has type nat. -/
+theorem HasType.succ_gen {Δ : KindContext} {ctx : Context p q}
+    {t : Term p q} {T : Ty p q}
+    (ht : HasType Δ ctx (.succ t) T) :
+    TyEquiv T .nat ∧ HasType Δ ctx t .nat := by
+  generalize htm : Term.succ t = m at ht
+  induction ht generalizing t with
+  | var _ _ => cases htm
+  | lam _ _ => cases htm
+  | app _ _ => cases htm
+  | tyAbs _ _ => cases htm
+  | tyApp _ _ _ => cases htm
+  | const => cases htm
+  | zero => cases htm
+  | succ ht' => cases htm; exact ⟨TyEquiv.refl, ht'⟩
+  | natrec _ _ _ _ _ => cases htm
+  | conv _ heq _ ih =>
+    obtain ⟨heq', ht'⟩ := ih htm
+    exact ⟨heq.symm.trans heq', ht'⟩
 
 -- ============================================================
 -- Type shifting preserves typing
@@ -219,6 +248,14 @@ theorem ty_shift_preserves_typing {Δ : KindContext} {ctx : Context p q}
     rw [show Ty.shift d c (Ty.subst 0 _ _) = Ty.subst 0 (Ty.shift d c _) (Ty.shift d (c + 1) _) from
       Ty.shift_subst_comm_gen d c 0 _ _ (Nat.zero_le c)]
     exact HasType.tyApp (argTy := Ty.shift d c _) hp ih_result (hk.rename d c hkind)
+  | const => simp only [Term.tyShift, Ty.shift]; exact .const
+  | zero => simp only [Term.tyShift]; exact .zero
+  | succ _ ih => simp only [Term.tyShift]; exact .succ (ih d c Δ' hkind)
+  | natrec hk _ _ _ ihbase ihstep ihn =>
+    simp only [Term.tyShift]
+    exact .natrec (hk.rename d c hkind) (ihbase d c Δ' hkind)
+      (by have h := ihstep d c Δ' hkind; simp only [Ty.shift] at h; exact h)
+      (by have h := ihn d c Δ' hkind; simp only [Ty.shift] at h; exact h)
   | conv ht heq hk ih =>
     exact .conv (ih d c Δ' hkind) (tyEquiv_shift heq d c) (hk.rename d c hkind)
 
@@ -276,6 +313,11 @@ theorem substitution_gen (j : Nat)
   | tyApp hp _ hk ih =>
     simp only [Term.subst]
     exact .tyApp hp (ih j hctx hs) hk
+  | const => simp only [Term.subst]; exact .const
+  | zero => simp only [Term.subst]; exact .zero
+  | succ _ ih => simp only [Term.subst]; exact .succ (ih j hctx hs)
+  | natrec hk _ _ _ ihbase ihstep ihn =>
+    simp only [Term.subst]; exact .natrec hk (ihbase j hctx hs) (ihstep j hctx hs) (ihn j hctx hs)
   | conv _ heq hk ih =>
     exact .conv (ih j hctx hs) heq hk
 
@@ -344,6 +386,16 @@ theorem ty_substitution_gen (j : Nat) (tyArg : Ty p q) (k₀ : Kind)
       fun a b => Ty.subst_subst_comm 0 j tyArg a b
     simp only [Nat.zero_add] at h2
     exact h2 _ _ ▸ HasType.tyApp hp ih_result (hk.subst_gen j hΔj hkarg)
+  | const => simp only [Term.tySubst, Ty.subst]; exact .const
+  | zero => simp only [Term.tySubst, Ty.subst]; exact .zero
+  | succ _ ih =>
+    simp only [Term.tySubst, Ty.subst]
+    exact .succ (by have h := ih j tyArg k₀ hΔj hkarg hctx; simp only [Ty.subst] at h; exact h)
+  | natrec hk _ _ _ ihbase ihstep ihn =>
+    simp only [Term.tySubst]
+    exact .natrec (hk.subst_gen j hΔj hkarg) (ihbase j tyArg k₀ hΔj hkarg hctx)
+      (by have h := ihstep j tyArg k₀ hΔj hkarg hctx; simp only [Ty.subst] at h; exact h)
+      (by have h := ihn j tyArg k₀ hΔj hkarg hctx; simp only [Ty.subst] at h; exact h)
   | conv ht heq hk ih =>
     exact .conv (ih j tyArg k₀ hΔj hkarg hctx) (tyEquiv_subst heq j tyArg) (hk.subst_gen j hΔj hkarg)
 
@@ -392,6 +444,20 @@ theorem preservation {Δ : KindContext} {ctx : Context p q} {t t' : Term p q} {t
       exact .app hfn (iharg hs')
   | tyAbs hp _ =>
     cases hs
+  | const =>
+    cases hs
+  | zero =>
+    cases hs
+  | succ _ ih =>
+    cases hs with
+    | succArg hs' => exact .succ (ih hs')
+  | natrec hk hbase hstep hn ihbase ihstep ihn =>
+    cases hs with
+    | recZero => exact hbase
+    | recSucc hv =>
+      obtain ⟨_, hv_nat⟩ := hn.succ_gen
+      exact .app (.app hstep hv_nat) (.natrec hk hbase hstep hv_nat)
+    | recArg hs' => exact .natrec hk hbase hstep (ihn hs')
   | tyApp hp ht' hk ih =>
     cases hs with
     | tyBeta =>

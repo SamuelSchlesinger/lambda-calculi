@@ -19,6 +19,13 @@ def Bool : Ty := .base 0
 def Nat : Ty := .base 1
 
 -- ============================================================
+-- Constants at base types
+-- ============================================================
+
+def true_ : Term := .const 0
+def zero_ : Term := .const 1
+
+-- ============================================================
 -- Examples
 -- ============================================================
 
@@ -28,6 +35,10 @@ def const_bool_nat : Term := .lam Bool (.lam Nat (.var 1))
 -- ============================================================
 -- Typing derivations
 -- ============================================================
+
+example : HasType [] [] true_ Bool := .const
+
+example : HasType [] [] zero_ Nat := .const
 
 example : HasType [] [] id_bool (.arr Bool Bool) :=
   .lam .base (.var (by decide) .base)
@@ -48,5 +59,20 @@ example : Step (.app id_bool (.lam Bool (.var 0)))
 
 example : Term.subst 0 (.lam Bool (.var 0)) (.var 0 : Term) = .lam Bool (.var 0) := by
   simp [Term.subst]
+
+-- ============================================================
+-- Applying functions to constants
+-- ============================================================
+
+/-- id_bool applied to true_ reduces to true_ -/
+example : Step (.app id_bool true_) (Term.subst 0 true_ (.var 0) : Term) :=
+  .beta .const
+
+example : Term.subst 0 true_ (.var 0 : Term) = true_ := by
+  simp [Term.subst, true_]
+
+/-- id_bool applied to true_ has type Bool -/
+example : HasType [] [] (.app id_bool true_) Bool :=
+  .app (.lam .base (.var (by decide) .base)) .const
 
 end LambdaCalculi.STLC

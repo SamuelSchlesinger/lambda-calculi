@@ -10,6 +10,9 @@ namespace LambdaCalculi
 inductive Value : Term p q → Prop where
   | lam : Value (.lam ty body)
   | tyAbs : Value (.tyAbs hp ki body)
+  | const : Value (.const n)
+  | zero : Value (.zero)
+  | succ : Value t → Value (.succ t)
 
 /-- Small-step call-by-value operational semantics.
 
@@ -36,6 +39,21 @@ inductive Step : Term p q → Term p q → Prop where
   | tyAppFn :
     Step t t' →
     Step (.tyApp hp t argTy) (.tyApp hp t' argTy)
+  /-- Reduce under successor -/
+  | succArg :
+    Step t t' →
+    Step (.succ t) (.succ t')
+  /-- Recursor on zero: natrec C base step zero ⟶ base -/
+  | recZero :
+    Step (.natrec C base step .zero) base
+  /-- Recursor on successor: natrec C base step (succ v) ⟶ step v (natrec C base step v) -/
+  | recSucc :
+    Value v →
+    Step (.natrec C base step (.succ v)) (.app (.app step v) (.natrec C base step v))
+  /-- Reduce the scrutinee of natrec -/
+  | recArg :
+    Step n n' →
+    Step (.natrec C base step n) (.natrec C base step n')
 
 /-- Reflexive transitive closure of Step -/
 inductive Steps : Term p q → Term p q → Prop where

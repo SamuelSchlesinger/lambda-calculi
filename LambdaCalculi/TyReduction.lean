@@ -113,7 +113,7 @@ theorem TyEquiv.from_step (h : TyStep t₁ t₂) : TyEquiv t₁ t₂ :=
 
 /-- Tags for the outermost constructor of a type -/
 inductive TyHead where
-  | base | arr | tvar | all | tyLam | tyAppTy
+  | base | arr | tvar | all | tyLam | tyAppTy | nat
   deriving DecidableEq
 
 /-- Extract the head constructor tag of a type -/
@@ -124,6 +124,7 @@ def Ty.head : Ty p q → TyHead
   | .all _ _ _ => .all
   | .tyLam _ _ _ => .tyLam
   | .tyAppTy _ _ _ => .tyAppTy
+  | .nat => .nat
 
 /-- A single step preserves the head constructor for non-stuck types.
     The only rule that changes the head is `beta`, which fires on `tyAppTy`. -/

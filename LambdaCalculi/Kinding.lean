@@ -19,6 +19,7 @@ inductive HasKind : KindContext → Ty p q → Kind → Prop where
   | tyLam : HasKind (k₁ :: Δ) body k₂ → HasKind Δ (.tyLam hq k₁ body) (.arr k₁ k₂)
   | tyAppTy : HasKind Δ f (.arr k₁ k₂) → HasKind Δ a k₁ →
               HasKind Δ (.tyAppTy hq f a) k₂
+  | nat : HasKind Δ .nat .star
 
 -- ============================================================
 -- Kinding weakening
@@ -31,6 +32,7 @@ theorem HasKind.rename {Δ Δ' : KindContext} {ty : Ty p q} {k : Kind}
     HasKind Δ' (Ty.shift d c ty) k := by
   induction hk generalizing c Δ' with
   | base => exact .base
+  | nat => exact .nat
   | arr ha hb iha ihb => exact .arr (iha c hctx) (ihb c hctx)
   | tvar hget =>
     simp only [Ty.shift]
@@ -81,6 +83,7 @@ theorem HasKind.subst_gen (j : Nat)
     HasKind (Δ.eraseIdx j) (Ty.subst j arg body) k₂ := by
   induction hbody generalizing j arg k₁ with
   | base => simp [Ty.subst]; exact .base
+  | nat => simp [Ty.subst]; exact .nat
   | arr ha hb iha ihb => simp [Ty.subst]; exact .arr (iha j hctx harg) (ihb j hctx harg)
   | tvar hget =>
     rename_i n _k _hpq
@@ -136,6 +139,7 @@ theorem HasKind.step_preserves (hk : HasKind Δ ty k) (hs : TyStep ty ty') :
     HasKind Δ ty' k := by
   induction hk generalizing ty' with
   | base => cases hs
+  | nat => cases hs
   | arr ha hb iha ihb =>
     cases hs with
     | arrLeft hs' => exact .arr (iha hs') hb

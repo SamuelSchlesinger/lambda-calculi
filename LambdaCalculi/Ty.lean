@@ -25,6 +25,8 @@ inductive Ty (p : Type) (q : Type) where
   | tyLam : q → Kind → Ty p q → Ty p q
   /-- Type-level application (τ₁ τ₂), gated by `q` -/
   | tyAppTy : q → Ty p q → Ty p q → Ty p q
+  /-- Natural number type -/
+  | nat : Ty p q
   deriving DecidableEq, Repr
 
 end LambdaCalculi

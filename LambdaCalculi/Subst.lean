@@ -33,6 +33,7 @@ def shift (d c : Nat) : Ty p q → Ty p q
   | .all hp ki body => .all hp ki (body.shift d (c + 1))
   | .tyLam hq ki body => .tyLam hq ki (body.shift d (c + 1))
   | .tyAppTy hq f a => .tyAppTy hq (f.shift d c) (a.shift d c)
+  | .nat => .nat
 
 /-- Substitute type `s` for type variable `j`, decrementing variables above `j` -/
 def subst (j : Nat) (s : Ty p q) (t : Ty p q) : Ty p q :=
@@ -46,6 +47,7 @@ def subst (j : Nat) (s : Ty p q) (t : Ty p q) : Ty p q :=
   | .all hp ki body => .all hp ki (Ty.subst (j + 1) (s.shift 1 0) body)
   | .tyLam hq ki body => .tyLam hq ki (Ty.subst (j + 1) (s.shift 1 0) body)
   | .tyAppTy hq f a => .tyAppTy hq (Ty.subst j s f) (Ty.subst j s a)
+  | .nat => .nat
 termination_by t
 
 end Ty
@@ -65,6 +67,10 @@ def shift (d c : Nat) : Term p q → Term p q
   | .lam ty body => .lam ty (body.shift d (c + 1))
   | .tyAbs hp ki body => .tyAbs hp ki (body.shift d c)
   | .tyApp hp t ty => .tyApp hp (t.shift d c) ty
+  | .const n => .const n
+  | .zero => .zero
+  | .succ t => .succ (t.shift d c)
+  | .natrec C base step n => .natrec C (base.shift d c) (step.shift d c) (n.shift d c)
 
 /-- Shift type variable indices inside a term's type annotations and type arguments.
     Needed for correct substitution under type binders (Λ) in System F / F-omega. -/
@@ -74,6 +80,10 @@ def tyShift (d c : Nat) : Term p q → Term p q
   | .lam ty body => .lam (ty.shift d c) (body.tyShift d c)
   | .tyAbs hp ki body => .tyAbs hp ki (body.tyShift d (c + 1))
   | .tyApp hp t ty => .tyApp hp (t.tyShift d c) (ty.shift d c)
+  | .const n => .const n
+  | .zero => .zero
+  | .succ t => .succ (t.tyShift d c)
+  | .natrec C base step n => .natrec (C.shift d c) (base.tyShift d c) (step.tyShift d c) (n.tyShift d c)
 
 /-- Substitute term `s` for term variable `j`, decrementing variables above `j`.
     This is the "combined" substitution: it replaces AND adjusts indices in one pass.
@@ -89,6 +99,10 @@ def subst (j : Nat) (s : Term p q) (t : Term p q) : Term p q :=
   | .lam ty body => .lam ty (Term.subst (j + 1) (s.shift 1 0) body)
   | .tyAbs hp ki body => .tyAbs hp ki (Term.subst j (s.tyShift 1 0) body)
   | .tyApp hp t ty => .tyApp hp (Term.subst j s t) ty
+  | .const n => .const n
+  | .zero => .zero
+  | .succ t => .succ (Term.subst j s t)
+  | .natrec C base step n => .natrec C (Term.subst j s base) (Term.subst j s step) (Term.subst j s n)
 termination_by t
 
 /-- Substitute type `s` for type variable `j` inside a term.
@@ -101,6 +115,10 @@ def tySubst (j : Nat) (s : Ty p q) (t : Term p q) : Term p q :=
   | .lam ty body => .lam (Ty.subst j s ty) (Term.tySubst j s body)
   | .tyAbs hp ki body => .tyAbs hp ki (Term.tySubst (j + 1) (s.shift 1 0) body)
   | .tyApp hp t ty => .tyApp hp (Term.tySubst j s t) (Ty.subst j s ty)
+  | .const n => .const n
+  | .zero => .zero
+  | .succ t => .succ (Term.tySubst j s t)
+  | .natrec C base step n => .natrec (Ty.subst j s C) (Term.tySubst j s base) (Term.tySubst j s step) (Term.tySubst j s n)
 termination_by t
 
 end Term

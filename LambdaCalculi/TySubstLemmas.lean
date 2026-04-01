@@ -20,6 +20,7 @@ theorem Ty.shift_zero (c : Nat) (ty : Ty p q) : Ty.shift 0 c ty = ty := by
   | all hp ki body ih => simp [Ty.shift, ih]
   | tyLam hq ki body ih => simp [Ty.shift, ih]
   | tyAppTy hq f a ihf iha => simp [Ty.shift, ihf, iha]
+  | nat => simp [Ty.shift]
 
 /-- Two shifts at compatible cutoffs commute (with adjusted cutoffs). -/
 theorem Ty.shift_shift_comm (d1 d2 c1 c2 : Nat) (ty : Ty p q) (h : c2 ≤ c1) :
@@ -44,6 +45,7 @@ theorem Ty.shift_shift_comm (d1 d2 c1 c2 : Nat) (ty : Ty p q) (h : c2 ≤ c1) :
   | tyAppTy hq f a ihf iha =>
     simp only [Ty.shift]
     exact congr (congrArg (Ty.tyAppTy hq) (ihf c1 c2 h)) (iha c1 c2 h)
+  | nat => simp [Ty.shift]
 
 -- ============================================================
 -- Shift-subst interaction lemmas
@@ -65,6 +67,7 @@ theorem Ty.subst_shift_cancel (j : Nat) (s : Ty p q) (ty : Ty p q) :
     simp only [Ty.shift, Ty.subst]; congr 1
     exact ih (j + 1) (s.shift 1 0)
   | tyAppTy hq f a ihf iha => simp [Ty.shift, Ty.subst, ihf, iha]
+  | nat => simp [Ty.shift, Ty.subst]
 
 /-- Shifting by 1 commutes with substitution (with adjusted indices). -/
 theorem Ty.shift_subst_comm (c j : Nat) (s ty : Ty p q) (h : c ≤ j) :
@@ -105,6 +108,7 @@ theorem Ty.shift_subst_comm (c j : Nat) (s ty : Ty p q) (h : c ≤ j) :
   | tyAppTy hq f a ihf iha =>
     simp only [Ty.shift, Ty.subst]
     exact congr (congrArg (Ty.tyAppTy hq) (ihf c j s h)) (iha c j s h)
+  | nat => simp [Ty.shift, Ty.subst]
 
 -- ============================================================
 -- Subst-subst commutation
@@ -164,6 +168,7 @@ theorem Ty.subst_subst_comm (i j : Nat) (s a : Ty p q) (b : Ty p q) :
   | tyAppTy hq f a' ihf iha =>
     simp only [Ty.subst]
     exact congr (congrArg (Ty.tyAppTy hq) (ihf i j s a)) (iha i j s a)
+  | nat => simp [Ty.subst]
 
 /-- Shifting commutes with substitution when the substitution index is below the shift cutoff.
     Specifically: shift d c (subst j s ty) = subst j (shift d c s) (shift d (c+1) ty) when j ≤ c. -/
@@ -205,5 +210,6 @@ theorem Ty.shift_subst_comm_gen (d c j : Nat) (s ty : Ty p q) (h : j ≤ c) :
   | tyAppTy hq f a ihf iha =>
     simp only [Ty.shift, Ty.subst]
     exact congr (congrArg (Ty.tyAppTy hq) (ihf c j s h)) (iha c j s h)
+  | nat => simp [Ty.shift, Ty.subst]
 
 end LambdaCalculi

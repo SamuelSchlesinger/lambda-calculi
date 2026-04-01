@@ -55,6 +55,11 @@ theorem weakening_map (pos : Nat)
     simp [hvty]
   | tyApp hp ht hk ih =>
     exact .tyApp hp (ih pos hctx) hk
+  | const => exact .const
+  | zero => exact .zero
+  | succ _ ih => exact .succ (ih pos hctx)
+  | natrec hk _ _ _ ihbase ihstep ihn =>
+    exact .natrec hk (ihbase pos hctx) (ihstep pos hctx) (ihn pos hctx)
   | conv ht heq hk ih =>
     exact .conv (ih pos hctx) heq hk
 
