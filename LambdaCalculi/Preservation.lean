@@ -141,12 +141,12 @@ private theorem tyEquiv_subst {s₁ s₂ : Ty p q} (he : TyEquiv s₁ s₂) (j :
     with the annotation as domain, the annotation is well-kinded, and the body
     is well-typed. -/
 theorem HasType.lam_gen {Δ : KindContext} {ctx : Context p q}
-    {ty : Ty p q} {body : Term p q} {T : Ty p q}
-    (ht : HasType Δ ctx (.lam ty body) T) :
+    {ty : Ty p q} {body : Term bmap p q} {T : Ty p q}
+    (ht : HasType bmap Δ ctx (.lam ty body) T) :
     ∃ retTy, TyEquiv T (.arr ty retTy) ∧ HasKind Δ ty .star ∧
-      HasType Δ (ty :: ctx) body retTy := by
+      HasType bmap Δ (ty :: ctx) body retTy := by
   generalize htm : Term.lam ty body = m at ht
-  induction ht generalizing ty body with
+  induction ht generalizing ty with
   | var _ _ => cases htm
   | lam hk hbody => cases htm; exact ⟨_, TyEquiv.refl, hk, hbody⟩
   | app _ _ => cases htm
@@ -163,12 +163,12 @@ theorem HasType.lam_gen {Δ : KindContext} {ctx : Context p q}
 /-- TyAbs generation: if a type abstraction has type T, then T is equivalent to a
     universal type, and the body is well-typed under an extended kind context. -/
 theorem HasType.tyAbs_gen {Δ : KindContext} {ctx : Context p q}
-    {hp : p} {k : Kind} {body : Term p q} {T : Ty p q}
-    (ht : HasType Δ ctx (.tyAbs hp k body) T) :
+    {hp : p} {k : Kind} {body : Term bmap p q} {T : Ty p q}
+    (ht : HasType bmap Δ ctx (.tyAbs hp k body) T) :
     ∃ bodyTy, TyEquiv T (.all hp k bodyTy) ∧
-      HasType (k :: Δ) (ctx.map (Ty.shift 1 0)) body bodyTy := by
+      HasType bmap (k :: Δ) (ctx.map (Ty.shift 1 0)) body bodyTy := by
   generalize htm : Term.tyAbs hp k body = m at ht
-  induction ht generalizing hp k body with
+  induction ht generalizing hp k with
   | var _ _ => cases htm
   | lam _ _ => cases htm
   | app _ _ => cases htm
@@ -185,11 +185,11 @@ theorem HasType.tyAbs_gen {Δ : KindContext} {ctx : Context p q}
 /-- Succ generation: if a successor has type T, then T is equivalent to nat
     and the argument has type nat. -/
 theorem HasType.succ_gen {Δ : KindContext} {ctx : Context p q}
-    {t : Term p q} {T : Ty p q}
-    (ht : HasType Δ ctx (.succ t) T) :
-    TyEquiv T .nat ∧ HasType Δ ctx t .nat := by
+    {t : Term bmap p q} {T : Ty p q}
+    (ht : HasType bmap Δ ctx (.succ t) T) :
+    TyEquiv T .nat ∧ HasType bmap Δ ctx t .nat := by
   generalize htm : Term.succ t = m at ht
-  induction ht generalizing t with
+  induction ht with
   | var _ _ => cases htm
   | lam _ _ => cases htm
   | app _ _ => cases htm
@@ -208,10 +208,10 @@ theorem HasType.succ_gen {Δ : KindContext} {ctx : Context p q}
 -- ============================================================
 
 theorem ty_shift_preserves_typing {Δ : KindContext} {ctx : Context p q}
-    {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (d c : Nat) (Δ' : KindContext)
+    {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (d c : Nat) (Δ' : KindContext)
     (hkind : ∀ n k, Δ[n]? = some k → Δ'[if n ≥ c then n + d else n]? = some k) :
-    HasType Δ' (ctx.map (Ty.shift d c)) (t.tyShift d c) (Ty.shift d c ty) := by
+    HasType bmap Δ' (ctx.map (Ty.shift d c)) (t.tyShift d c) (Ty.shift d c ty) := by
   induction ht generalizing d c Δ' with
   | var hget hk =>
     simp only [Term.tyShift]; exact .var (by simp only [List.getElem?_map]; rw [hget]; rfl)
@@ -248,7 +248,7 @@ theorem ty_shift_preserves_typing {Δ : KindContext} {ctx : Context p q}
     rw [show Ty.shift d c (Ty.subst 0 _ _) = Ty.subst 0 (Ty.shift d c _) (Ty.shift d (c + 1) _) from
       Ty.shift_subst_comm_gen d c 0 _ _ (Nat.zero_le c)]
     exact HasType.tyApp (argTy := Ty.shift d c _) hp ih_result (hk.rename d c hkind)
-  | const => simp only [Term.tyShift, Ty.shift]; exact .const
+  | const i => simp only [Term.tyShift, Ty.shift]; exact .const i
   | zero => simp only [Term.tyShift]; exact .zero
   | succ _ ih => simp only [Term.tyShift]; exact .succ (ih d c Δ' hkind)
   | natrec hk _ _ _ ihbase ihstep ihn =>
@@ -260,9 +260,9 @@ theorem ty_shift_preserves_typing {Δ : KindContext} {ctx : Context p q}
     exact .conv (ih d c Δ' hkind) (tyEquiv_shift heq d c) (hk.rename d c hkind)
 
 theorem ty_shift_preserves_typing_weaken {Δ : KindContext} {ctx : Context p q}
-    {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (extra : Kind) :
-    HasType (extra :: Δ) (ctx.map (Ty.shift 1 0)) (t.tyShift 1 0) (Ty.shift 1 0 ty) :=
+    {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (extra : Kind) :
+    HasType bmap (extra :: Δ) (ctx.map (Ty.shift 1 0)) (t.tyShift 1 0) (Ty.shift 1 0 ty) :=
   ty_shift_preserves_typing ht 1 0 (extra :: Δ) (fun n k' hget => by
     simp [List.getElem?_cons_succ, hget])
 
@@ -271,12 +271,12 @@ theorem ty_shift_preserves_typing_weaken {Δ : KindContext} {ctx : Context p q}
 -- ============================================================
 
 theorem substitution_gen (j : Nat)
-    {Δ : KindContext} {ctx : Context p q} {body : Term p q} {bodyTy sTy : Ty p q} {s : Term p q}
-    (hbody : HasType Δ ctx body bodyTy)
+    {Δ : KindContext} {ctx : Context p q} {body : Term bmap p q} {bodyTy sTy : Ty p q} {s : Term bmap p q}
+    (hbody : HasType bmap Δ ctx body bodyTy)
     (hctx : ctx[j]? = some sTy)
-    (hs : HasType Δ (ctx.eraseIdx j) s sTy) :
-    HasType Δ (ctx.eraseIdx j) (Term.subst j s body) bodyTy := by
-  induction hbody generalizing j s sTy with
+    (hs : HasType bmap Δ (ctx.eraseIdx j) s sTy) :
+    HasType bmap Δ (ctx.eraseIdx j) (Term.subst j s body) bodyTy := by
+  induction hbody generalizing j sTy with
   | var hget hk =>
     simp only [Term.subst]
     split
@@ -289,7 +289,7 @@ theorem substitution_gen (j : Nat)
         exact .var (by rw [List.getElem?_eraseIdx, if_pos (by omega)]; exact hget) hk
   | lam hk hbody ih =>
     simp only [Term.subst]; exact .lam hk (by
-      show HasType _ (((_ :: _) : Context p q).eraseIdx (j + 1)) _ _
+      show HasType _ _ (((_ :: _) : Context p q).eraseIdx (j + 1)) _ _
       apply ih (j + 1)
       · simp only [List.getElem?_cons_succ]; exact hctx
       · simp only [List.eraseIdx_cons_succ]; exact weakening_cons hs _)
@@ -313,7 +313,7 @@ theorem substitution_gen (j : Nat)
   | tyApp hp _ hk ih =>
     simp only [Term.subst]
     exact .tyApp hp (ih j hctx hs) hk
-  | const => simp only [Term.subst]; exact .const
+  | const i => simp only [Term.subst]; exact .const i
   | zero => simp only [Term.subst]; exact .zero
   | succ _ ih => simp only [Term.subst]; exact .succ (ih j hctx hs)
   | natrec hk _ _ _ ihbase ihstep ihn =>
@@ -321,10 +321,10 @@ theorem substitution_gen (j : Nat)
   | conv _ heq hk ih =>
     exact .conv (ih j hctx hs) heq hk
 
-theorem substitution {Δ : KindContext} {ctx : Context p q} {body s : Term p q} {bodyTy sTy : Ty p q}
-    (hbody : HasType Δ (sTy :: ctx) body bodyTy)
-    (hs : HasType Δ ctx s sTy) :
-    HasType Δ ctx (Term.subst 0 s body) bodyTy := by
+theorem substitution {Δ : KindContext} {ctx : Context p q} {body s : Term bmap p q} {bodyTy sTy : Ty p q}
+    (hbody : HasType bmap Δ (sTy :: ctx) body bodyTy)
+    (hs : HasType bmap Δ ctx s sTy) :
+    HasType bmap Δ ctx (Term.subst 0 s body) bodyTy := by
   have h := substitution_gen 0 hbody (by simp) hs
   simpa using h
 
@@ -333,13 +333,13 @@ theorem substitution {Δ : KindContext} {ctx : Context p q} {body s : Term p q} 
 -- ============================================================
 
 theorem ty_substitution_gen (j : Nat) (tyArg : Ty p q) (k₀ : Kind)
-    {Δ : KindContext} {ctx ctx' : Context p q} {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty)
+    {Δ : KindContext} {ctx ctx' : Context p q} {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty)
     (hΔj : Δ[j]? = some k₀)
     (hkarg : HasKind (Δ.eraseIdx j) tyArg k₀)
     (hctx : ∀ (n : Nat) (ty : Ty p q), ctx[n]? = some ty →
       ctx'[n]? = some (Ty.subst j tyArg ty)) :
-    HasType (Δ.eraseIdx j) ctx' (Term.tySubst j tyArg t) (Ty.subst j tyArg ty) := by
+    HasType bmap (Δ.eraseIdx j) ctx' (Term.tySubst j tyArg t) (Ty.subst j tyArg ty) := by
   induction ht generalizing j tyArg ctx' k₀ with
   | var hget hk =>
     simp only [Term.tySubst]
@@ -386,7 +386,7 @@ theorem ty_substitution_gen (j : Nat) (tyArg : Ty p q) (k₀ : Kind)
       fun a b => Ty.subst_subst_comm 0 j tyArg a b
     simp only [Nat.zero_add] at h2
     exact h2 _ _ ▸ HasType.tyApp hp ih_result (hk.subst_gen j hΔj hkarg)
-  | const => simp only [Term.tySubst, Ty.subst]; exact .const
+  | const i => simp only [Term.tySubst, Ty.subst]; exact .const i
   | zero => simp only [Term.tySubst, Ty.subst]; exact .zero
   | succ _ ih =>
     simp only [Term.tySubst, Ty.subst]
@@ -400,10 +400,10 @@ theorem ty_substitution_gen (j : Nat) (tyArg : Ty p q) (k₀ : Kind)
     exact .conv (ih j tyArg k₀ hΔj hkarg hctx) (tyEquiv_subst heq j tyArg) (hk.subst_gen j hΔj hkarg)
 
 theorem ty_substitution {Δ : KindContext} {ctx : Context p q}
-    {t : Term p q} {ty : Ty p q} {k : Kind} {argTy : Ty p q}
-    (ht : HasType (k :: Δ) (ctx.map (Ty.shift 1 0)) t ty)
+    {t : Term bmap p q} {ty : Ty p q} {k : Kind} {argTy : Ty p q}
+    (ht : HasType bmap (k :: Δ) (ctx.map (Ty.shift 1 0)) t ty)
     (hkarg : HasKind Δ argTy k) :
-    HasType Δ ctx (Term.tySubst 0 argTy t) (Ty.subst 0 argTy ty) := by
+    HasType bmap Δ ctx (Term.tySubst 0 argTy t) (Ty.subst 0 argTy ty) := by
   have h := ty_substitution_gen 0 argTy k ht (by simp) (by simpa using hkarg)
     (fun n ty' hget' => by
       simp only [List.getElem?_map] at hget'
@@ -417,10 +417,10 @@ theorem ty_substitution {Δ : KindContext} {ctx : Context p q}
 -- ============================================================
 
 /-- Preservation: if Δ; Γ ⊢ t : T and t ⟶ t', then Δ; Γ ⊢ t' : T -/
-theorem preservation {Δ : KindContext} {ctx : Context p q} {t t' : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (hs : Step t t') :
-    HasType Δ ctx t' ty := by
-  induction ht generalizing t' with
+theorem preservation {Δ : KindContext} {ctx : Context p q} {t t' : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (hs : Step t t') :
+    HasType bmap Δ ctx t' ty := by
+  induction ht with
   | var hget _ =>
     cases hs
   | lam _ _ =>

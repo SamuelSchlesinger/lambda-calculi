@@ -12,8 +12,9 @@ with `p = Unit, q = Empty` (polymorphism enabled, no type operators). -/
 
 namespace LambdaCalculi.SystemF
 
+def bmap : Nat → Type := fun _ => Empty
 abbrev Ty := LambdaCalculi.Ty Unit Empty
-abbrev Term := LambdaCalculi.Term Unit Empty
+abbrev Term := LambdaCalculi.Term bmap Unit Empty
 abbrev Context := LambdaCalculi.Context Unit Empty
 
 def tvar (n : Nat) : Ty := .tvar (.inl ()) n
@@ -49,18 +50,18 @@ private def tvar_kind (n : Nat) (Δ : KindContext) (h : Δ[n]? = some .star) :
 -- Typing derivations
 -- ============================================================
 
-example : HasType [] [] id_ IdTy :=
+example : HasType bmap [] [] id_ IdTy :=
   .tyAbs () (.lam (.tvar (by decide)) (.var (by decide) (.tvar (by decide))))
 
-example : HasType [] [] true_ BoolTy :=
+example : HasType bmap [] [] true_ BoolTy :=
   .tyAbs () (.lam (.tvar (by decide))
     (.lam (.tvar (by decide)) (.var (by decide) (.tvar (by decide)))))
 
-example : HasType [] [] false_ BoolTy :=
+example : HasType bmap [] [] false_ BoolTy :=
   .tyAbs () (.lam (.tvar (by decide))
     (.lam (.tvar (by decide)) (.var (by decide) (.tvar (by decide)))))
 
-example : HasType [] [] zero_ NatTy :=
+example : HasType bmap [] [] zero_ NatTy :=
   .tyAbs () (.lam (.arr (.tvar (by decide)) (.tvar (by decide)))
     (.lam (.tvar (by decide)) (.var (by decide) (.tvar (by decide)))))
 

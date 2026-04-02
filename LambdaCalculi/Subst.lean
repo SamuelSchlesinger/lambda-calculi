@@ -61,26 +61,26 @@ namespace Term
 /-- Shift term variable indices: add `d` to all term variable indices ≥ `c`.
     Type annotations and type arguments are left unchanged (they don't contain
     term variables in STLC or System F). -/
-def shift (d c : Nat) : Term p q → Term p q
+def shift (d c : Nat) : Term bmap p q → Term bmap p q
   | .var k => .var (if k ≥ c then k + d else k)
   | .app t₁ t₂ => .app (t₁.shift d c) (t₂.shift d c)
   | .lam ty body => .lam ty (body.shift d (c + 1))
   | .tyAbs hp ki body => .tyAbs hp ki (body.shift d c)
   | .tyApp hp t ty => .tyApp hp (t.shift d c) ty
-  | .const n => .const n
+  | .const i c => .const i c
   | .zero => .zero
   | .succ t => .succ (t.shift d c)
   | .natrec C base step n => .natrec C (base.shift d c) (step.shift d c) (n.shift d c)
 
 /-- Shift type variable indices inside a term's type annotations and type arguments.
     Needed for correct substitution under type binders (Λ) in System F / F-omega. -/
-def tyShift (d c : Nat) : Term p q → Term p q
+def tyShift (d c : Nat) : Term bmap p q → Term bmap p q
   | .var k => .var k
   | .app t₁ t₂ => .app (t₁.tyShift d c) (t₂.tyShift d c)
   | .lam ty body => .lam (ty.shift d c) (body.tyShift d c)
   | .tyAbs hp ki body => .tyAbs hp ki (body.tyShift d (c + 1))
   | .tyApp hp t ty => .tyApp hp (t.tyShift d c) (ty.shift d c)
-  | .const n => .const n
+  | .const i c => .const i c
   | .zero => .zero
   | .succ t => .succ (t.tyShift d c)
   | .natrec C base step n => .natrec (C.shift d c) (base.tyShift d c) (step.tyShift d c) (n.tyShift d c)
@@ -89,7 +89,7 @@ def tyShift (d c : Nat) : Term p q → Term p q
     This is the "combined" substitution: it replaces AND adjusts indices in one pass.
     When passing under a type binder (Λ), the type annotations in `s` are shifted
     to account for the new type variable scope. -/
-def subst (j : Nat) (s : Term p q) (t : Term p q) : Term p q :=
+def subst (j : Nat) (s : Term bmap p q) (t : Term bmap p q) : Term bmap p q :=
   match t with
   | .var k =>
     if k = j then s
@@ -99,7 +99,7 @@ def subst (j : Nat) (s : Term p q) (t : Term p q) : Term p q :=
   | .lam ty body => .lam ty (Term.subst (j + 1) (s.shift 1 0) body)
   | .tyAbs hp ki body => .tyAbs hp ki (Term.subst j (s.tyShift 1 0) body)
   | .tyApp hp t ty => .tyApp hp (Term.subst j s t) ty
-  | .const n => .const n
+  | .const i c => .const i c
   | .zero => .zero
   | .succ t => .succ (Term.subst j s t)
   | .natrec C base step n => .natrec C (Term.subst j s base) (Term.subst j s step) (Term.subst j s n)
@@ -108,14 +108,14 @@ termination_by t
 /-- Substitute type `s` for type variable `j` inside a term.
     This modifies type annotations and type arguments but not term variable indices.
     Needed for System F / F-omega type-level beta reduction. -/
-def tySubst (j : Nat) (s : Ty p q) (t : Term p q) : Term p q :=
+def tySubst (j : Nat) (s : Ty p q) (t : Term bmap p q) : Term bmap p q :=
   match t with
   | .var k => .var k
   | .app t₁ t₂ => .app (Term.tySubst j s t₁) (Term.tySubst j s t₂)
   | .lam ty body => .lam (Ty.subst j s ty) (Term.tySubst j s body)
   | .tyAbs hp ki body => .tyAbs hp ki (Term.tySubst (j + 1) (s.shift 1 0) body)
   | .tyApp hp t ty => .tyApp hp (Term.tySubst j s t) (Ty.subst j s ty)
-  | .const n => .const n
+  | .const i c => .const i c
   | .zero => .zero
   | .succ t => .succ (Term.tySubst j s t)
   | .natrec C base step n => .natrec (Ty.subst j s C) (Term.tySubst j s base) (Term.tySubst j s step) (Term.tySubst j s n)

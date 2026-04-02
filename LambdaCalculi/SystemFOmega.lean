@@ -13,8 +13,9 @@ with `p = Unit, q = Unit` — both polymorphism and type operators are enabled. 
 
 namespace LambdaCalculi.SystemFOmega
 
+def bmap : Nat → Type := fun _ => Empty
 abbrev Ty := LambdaCalculi.Ty Unit Unit
-abbrev Term := LambdaCalculi.Term Unit Unit
+abbrev Term := LambdaCalculi.Term bmap Unit Unit
 abbrev Context := LambdaCalculi.Context Unit Unit
 
 def tvar (n : Nat) : Ty := .tvar (.inl ()) n
@@ -67,13 +68,13 @@ example : HasKind [] Compose (.arr (.arr .star .star) (.arr (.arr .star .star) (
 
 def polyId : Term := tyAbs .star (.lam (tvar 0) (.var 0))
 
-example : HasType [] [] polyId PolyIdTy :=
+example : HasType bmap [] [] polyId PolyIdTy :=
   .tyAbs () (.lam (.tvar (by decide)) (.var (by decide) (.tvar (by decide))))
 
 def hkId : Term :=
   tyAbs (.arr .star .star) (tyAbs .star (.lam (tyAppTy (tvar 1) (tvar 0)) (.var 0)))
 
-example : HasType [] [] hkId HigherKindedId :=
+example : HasType bmap [] [] hkId HigherKindedId :=
   .tyAbs () (.tyAbs ()
     (.lam (.tyAppTy (k₁ := .star) (.tvar (by decide)) (.tvar (by decide)))
       (.var (by decide) (.tyAppTy (k₁ := .star) (.tvar (by decide)) (.tvar (by decide))))))

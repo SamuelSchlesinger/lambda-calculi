@@ -7,10 +7,10 @@ namespace LambdaCalculi
 /-- A term is a value (cannot be reduced further).
     For STLC: only lambdas are values.
     For System F / F-omega: type abstractions are also values. -/
-inductive Value : Term p q → Prop where
+inductive Value : Term bmap p q → Prop where
   | lam : Value (.lam ty body)
   | tyAbs : Value (.tyAbs hp ki body)
-  | const : Value (.const n)
+  | const : Value (.const i c)
   | zero : Value (.zero)
   | succ : Value t → Value (.succ t)
 
@@ -18,7 +18,7 @@ inductive Value : Term p q → Prop where
 
     For STLC (`p = Empty, q = Empty`), only `beta`, `appFn`, `appArg` are usable.
     For System F / F-omega (`p` inhabited), `tyBeta` and `tyAppFn` become available. -/
-inductive Step : Term p q → Term p q → Prop where
+inductive Step : Term bmap p q → Term bmap p q → Prop where
   /-- Beta reduction: (λτ. body) v ⟶ body[0 := v] -/
   | beta :
     Value v →
@@ -56,7 +56,7 @@ inductive Step : Term p q → Term p q → Prop where
     Step (.natrec C base step n) (.natrec C base step n')
 
 /-- Reflexive transitive closure of Step -/
-inductive Steps : Term p q → Term p q → Prop where
+inductive Steps : Term bmap p q → Term bmap p q → Prop where
   | refl : Steps t t
   | step : Step t t' → Steps t' t'' → Steps t t''
 

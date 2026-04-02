@@ -11,11 +11,11 @@ then typing in `ctx` implies typing in `ctx'` (with shifted term). -/
 /-- General renaming/weakening: if every variable in `ctx` maps to the
     corresponding type in `ctx'` (via shifting), then typing is preserved. -/
 theorem weakening_map (pos : Nat)
-    {Δ : KindContext} {ctx ctx' : Context p q} {t : Term p q} {ty : Ty p q}
+    {Δ : KindContext} {ctx ctx' : Context p q} {t : Term bmap p q} {ty : Ty p q}
     (hctx : ∀ n ty, ctx[n]? = some ty →
       ctx'[if n ≥ pos then n + 1 else n]? = some ty)
-    (ht : HasType Δ ctx t ty) :
-    HasType Δ ctx' (t.shift 1 pos) ty := by
+    (ht : HasType bmap Δ ctx t ty) :
+    HasType bmap Δ ctx' (t.shift 1 pos) ty := by
   induction ht generalizing pos ctx' with
   | var hget hk =>
     exact .var (hctx _ _ hget) hk
@@ -55,7 +55,7 @@ theorem weakening_map (pos : Nat)
     simp [hvty]
   | tyApp hp ht hk ih =>
     exact .tyApp hp (ih pos hctx) hk
-  | const => exact .const
+  | const i => exact .const i
   | zero => exact .zero
   | succ _ ih => exact .succ (ih pos hctx)
   | natrec hk _ _ _ ihbase ihstep ihn =>
@@ -64,9 +64,9 @@ theorem weakening_map (pos : Nat)
     exact .conv (ih pos hctx) heq hk
 
 /-- Weakening at the front: adding a type to the context preserves typing. -/
-theorem weakening_cons {Δ : KindContext} {ctx : Context p q} {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (extra : Ty p q) :
-    HasType Δ (extra :: ctx) (t.shift 1 0) ty := by
+theorem weakening_cons {Δ : KindContext} {ctx : Context p q} {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (extra : Ty p q) :
+    HasType bmap Δ (extra :: ctx) (t.shift 1 0) ty := by
   apply weakening_map 0 _ ht
   intro n ty' hget
   simp only [Nat.zero_le, ↓reduceIte, List.getElem?_cons_succ]

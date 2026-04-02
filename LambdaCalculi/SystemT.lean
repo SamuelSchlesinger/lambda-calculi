@@ -16,8 +16,9 @@ all primitive recursive functions (and more, e.g., the Ackermann function). -/
 
 namespace LambdaCalculi.SystemT
 
+def bmap : Nat → Type := fun _ => Empty
 abbrev Ty := LambdaCalculi.Ty Empty Empty
-abbrev Term := LambdaCalculi.Term Empty Empty
+abbrev Term := LambdaCalculi.Term bmap Empty Empty
 abbrev Context := LambdaCalculi.Context Empty Empty
 
 -- ============================================================
@@ -29,10 +30,10 @@ def one : Term := .succ .zero
 def two : Term := .succ (.succ .zero)
 def three : Term := .succ (.succ (.succ .zero))
 
-example : HasType [] [] zero .nat := .zero
-example : HasType [] [] one .nat := .succ .zero
-example : HasType [] [] two .nat := .succ (.succ .zero)
-example : HasType [] [] three .nat := .succ (.succ (.succ .zero))
+example : HasType bmap [] [] zero .nat := .zero
+example : HasType bmap [] [] one .nat := .succ .zero
+example : HasType bmap [] [] two .nat := .succ (.succ .zero)
+example : HasType bmap [] [] three .nat := .succ (.succ (.succ .zero))
 
 example : Value zero := .zero
 example : Value one := .succ .zero
@@ -86,31 +87,31 @@ def apply_twice : Term :=
 -- Typing derivations
 -- ============================================================
 
-example : HasType [] [] add (.arr .nat (.arr .nat .nat)) :=
+example : HasType bmap [] [] add (.arr .nat (.arr .nat .nat)) :=
   .lam .nat (.lam .nat
     (.natrec .nat (.var (by decide) .nat)
       (.lam .nat (.lam .nat (.succ (.var (by decide) .nat))))
       (.var (by decide) .nat)))
 
-example : HasType [] [] pred (.arr .nat .nat) :=
+example : HasType bmap [] [] pred (.arr .nat .nat) :=
   .lam .nat (.natrec .nat .zero
     (.lam .nat (.lam .nat (.var (by decide) .nat)))
     (.var (by decide) .nat))
 
-example : HasType [] [] iszero (.arr .nat .nat) :=
+example : HasType bmap [] [] iszero (.arr .nat .nat) :=
   .lam .nat (.natrec .nat (.succ .zero)
     (.lam .nat (.lam .nat .zero))
     (.var (by decide) .nat))
 
-example : HasType [] [] double (.arr .nat .nat) :=
+example : HasType bmap [] [] double (.arr .nat .nat) :=
   .lam .nat (.natrec .nat .zero
     (.lam .nat (.lam .nat (.succ (.succ (.var (by decide) .nat)))))
     (.var (by decide) .nat))
 
-example : HasType [] [] const_zero (.arr .nat .nat) :=
+example : HasType bmap [] [] const_zero (.arr .nat .nat) :=
   .lam .nat .zero
 
-example : HasType [] [] apply_twice (.arr (.arr .nat .nat) (.arr .nat .nat)) :=
+example : HasType bmap [] [] apply_twice (.arr (.arr .nat .nat) (.arr .nat .nat)) :=
   .lam (.arr .nat .nat) (.lam .nat
     (.app (.var (by decide) (.arr .nat .nat))
       (.app (.var (by decide) (.arr .nat .nat)) (.var (by decide) .nat))))

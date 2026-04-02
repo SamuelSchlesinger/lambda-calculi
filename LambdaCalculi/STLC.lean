@@ -11,19 +11,24 @@ with `p = Empty, q = Empty` (no polymorphism, no type operators). -/
 
 namespace LambdaCalculi.STLC
 
+@[reducible] def bmap : Nat → Type
+  | 0 => Bool
+  | 1 => Nat
+  | _ => Empty
+
 abbrev Ty := LambdaCalculi.Ty Empty Empty
-abbrev Term := LambdaCalculi.Term Empty Empty
+abbrev Term := LambdaCalculi.Term bmap Empty Empty
 abbrev Context := LambdaCalculi.Context Empty Empty
 
-def Bool : Ty := .base 0
-def Nat : Ty := .base 1
+abbrev Bool : Ty := .base 0
+abbrev Nat : Ty := .base 1
 
 -- ============================================================
 -- Constants at base types
 -- ============================================================
 
-def true_ : Term := .const 0
-def zero_ : Term := .const 1
+abbrev true_ : Term := .const 0 true
+abbrev zero_ : Term := .const 1 0
 
 -- ============================================================
 -- Examples
@@ -36,17 +41,17 @@ def const_bool_nat : Term := .lam Bool (.lam Nat (.var 1))
 -- Typing derivations
 -- ============================================================
 
-example : HasType [] [] true_ Bool := .const
+example : HasType bmap [] [] true_ Bool := .const (bmap := bmap) (i := 0) true
 
-example : HasType [] [] zero_ Nat := .const
+example : HasType bmap [] [] zero_ Nat := .const 0
 
-example : HasType [] [] id_bool (.arr Bool Bool) :=
+example : HasType bmap [] [] id_bool (.arr Bool Bool) :=
   .lam .base (.var (by decide) .base)
 
-example : HasType [] [] const_bool_nat (.arr Bool (.arr Nat Bool)) :=
+example : HasType bmap [] [] const_bool_nat (.arr Bool (.arr Nat Bool)) :=
   .lam .base (.lam .base (.var (by decide) .base))
 
-example : HasType [] [Bool] (.app id_bool (.var 0)) Bool :=
+example : HasType bmap [] [Bool] (.app id_bool (.var 0)) Bool :=
   .app (.lam .base (.var (by decide) .base)) (.var (by decide) .base)
 
 -- ============================================================
@@ -72,7 +77,7 @@ example : Term.subst 0 true_ (.var 0 : Term) = true_ := by
   simp [Term.subst, true_]
 
 /-- id_bool applied to true_ has type Bool -/
-example : HasType [] [] (.app id_bool true_) Bool :=
-  .app (.lam .base (.var (by decide) .base)) .const
+example : HasType bmap [] [] (.app id_bool true_) Bool :=
+  .app (.lam .base (.var (by decide) .base)) (.const (bmap := bmap) (i := 0) true)
 
 end LambdaCalculi.STLC

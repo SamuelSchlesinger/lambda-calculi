@@ -16,7 +16,7 @@ namespace LambdaCalculi.TyOp
 
 -- Type aliases: p = Empty (no polymorphism), q = Unit (type operators enabled)
 abbrev Ty := LambdaCalculi.Ty Empty Unit
-abbrev Term := LambdaCalculi.Term Empty Unit
+abbrev Term bmap := LambdaCalculi.Term bmap Empty Unit
 abbrev Context := LambdaCalculi.Context Empty Unit
 
 -- ============================================================

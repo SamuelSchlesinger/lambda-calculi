@@ -11,8 +11,8 @@ We prove this for all lambda square instantiations simultaneously. -/
 
 /-- Canonical forms for arrow types, generalized for type equivalence.
     A closed value whose type is equivalent to an arrow must be a lambda. -/
-theorem canonical_arr_gen {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (hctx : ctx = []) (hv : Value t)
+theorem canonical_arr_gen {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (hctx : ctx = []) (hv : Value t)
     (heq : TyEquiv ty (.arr argTy retTy)) :
     ∃ ty' body, t = .lam ty' body := by
   induction ht generalizing argTy retTy with
@@ -30,14 +30,14 @@ theorem canonical_arr_gen {t : Term p q} {ty : Ty p q}
     exact ih hctx hv (heq'.trans heq)
 
 /-- Canonical forms: a closed value of arrow type must be a lambda -/
-theorem canonical_arr {t : Term p q}
-    (ht : HasType Δ [] t (.arr argTy retTy)) (hv : Value t) :
+theorem canonical_arr {t : Term bmap p q}
+    (ht : HasType bmap Δ [] t (.arr argTy retTy)) (hv : Value t) :
     ∃ ty body, t = .lam ty body :=
   canonical_arr_gen ht rfl hv TyEquiv.refl
 
 /-- Canonical forms for universal types, generalized for type equivalence -/
-theorem canonical_all_gen {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (hctx : ctx = []) (hv : Value t)
+theorem canonical_all_gen {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (hctx : ctx = []) (hv : Value t)
     (heq : TyEquiv ty (.all hp ki bodyTy)) :
     ∃ hp' ki' body, t = .tyAbs hp' ki' body := by
   induction ht generalizing hp ki bodyTy with
@@ -55,15 +55,15 @@ theorem canonical_all_gen {t : Term p q} {ty : Ty p q}
     exact ih hctx hv (heq'.trans heq)
 
 /-- Canonical forms: a closed value of ∀ type must be a type abstraction -/
-theorem canonical_all {t : Term p q}
-    (ht : HasType Δ [] t (.all hp ki ty)) (hv : Value t) :
+theorem canonical_all {t : Term bmap p q}
+    (ht : HasType bmap Δ [] t (.all hp ki ty)) (hv : Value t) :
     ∃ hp' ki' body, t = .tyAbs hp' ki' body :=
   canonical_all_gen ht rfl hv TyEquiv.refl
 
 /-- Canonical forms for nat types, generalized for type equivalence.
     A closed value whose type is equivalent to nat must be zero or succ v. -/
-theorem canonical_nat_gen {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (hctx : ctx = []) (hv : Value t)
+theorem canonical_nat_gen {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (hctx : ctx = []) (hv : Value t)
     (heq : TyEquiv ty .nat) :
     t = .zero ∨ ∃ v, t = .succ v ∧ Value v := by
   induction ht with
@@ -79,14 +79,14 @@ theorem canonical_nat_gen {t : Term p q} {ty : Ty p q}
   | conv _ heq' _ ih => exact ih hctx hv (heq'.trans heq)
 
 /-- Canonical forms: a closed value of nat type must be zero or succ v -/
-theorem canonical_nat {t : Term p q}
-    (ht : HasType Δ [] t .nat) (hv : Value t) :
+theorem canonical_nat {t : Term bmap p q}
+    (ht : HasType bmap Δ [] t .nat) (hv : Value t) :
     t = .zero ∨ ∃ v, t = .succ v ∧ Value v :=
   canonical_nat_gen ht rfl hv TyEquiv.refl
 
 /-- Progress: a well-typed closed term is either a value or can step. -/
-theorem progress {t : Term p q} {ty : Ty p q}
-    (ht : HasType Δ ctx t ty) (hclosed : ctx = []) :
+theorem progress {t : Term bmap p q} {ty : Ty p q}
+    (ht : HasType bmap Δ ctx t ty) (hclosed : ctx = []) :
     Value t ∨ ∃ t', Step t t' := by
   induction ht with
   | var hget _ =>
@@ -131,7 +131,7 @@ theorem progress {t : Term p q} {ty : Ty p q}
     exact ih hclosed
 
 /-- Convenience: progress for closed terms -/
-theorem progress' {t : Term p q} {ty : Ty p q} (ht : HasType Δ [] t ty) :
+theorem progress' {t : Term bmap p q} {ty : Ty p q} (ht : HasType bmap Δ [] t ty) :
     Value t ∨ ∃ t', Step t t' :=
   progress ht rfl
 
